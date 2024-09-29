@@ -4,3 +4,4 @@ dash-bootstrap-components
 numpy
 scikit-learn
 matplotlib
+scipy

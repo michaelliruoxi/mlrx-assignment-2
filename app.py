@@ -4,6 +4,7 @@ from flask import Flask
 from dash import Dash, dcc, html, Input, Output, State
 from sklearn.datasets import make_blobs
 from kmeans import KMeansCustom
+from scipy.spatial import cKDTree
 
 # Initialize Flask server
 server = Flask(__name__)
@@ -22,6 +23,31 @@ center_box = (np.random.uniform(-20.0, 0.0), np.random.uniform(0.0, 20.0))  # Ra
 # Generate random dataset
 X, y = make_blobs(n_samples=n_samples, centers=n_centers, cluster_std=cluster_std, center_box=center_box)
 
+def create_invisible_grid(X, num_points=50, threshold=0.1):
+    # Create a grid based on the min and max of the X data
+    x_min, x_max = X[:, 0].min(), X[:, 0].max()
+    y_min, y_max = X[:, 1].min(), X[:, 1].max()
+
+    # Create linearly spaced points in the x and y direction
+    x_grid = np.linspace(x_min, x_max, num_points)
+    y_grid = np.linspace(y_min, y_max, num_points)
+
+    # Create a meshgrid for all combinations of x and y points
+    xx, yy = np.meshgrid(x_grid, y_grid)
+
+    # Create grid points as (x, y) pairs
+    grid_points = np.column_stack([xx.ravel(), yy.ravel()])
+
+    # Remove points that are too close to actual data points
+    # Use a KDTree to efficiently find close neighbors
+    tree = cKDTree(X)  # Build a KDTree of the data points
+    distances, _ = tree.query(grid_points, distance_upper_bound=threshold)  # Query points within a threshold distance
+
+    # Only keep grid points that are farther than the threshold distance from data points
+    mask = distances > threshold  # Boolean mask: True if point is far enough
+    filtered_grid_points = grid_points[mask]
+
+    return filtered_grid_points
 
 kmeans = None  # No centroids initially
 current_step = 0
@@ -128,7 +154,7 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
             return dash.no_update, convergence_message, manual_centroids
     
     # Allow user to select centroids up to the number of clusters specified by `n_clusters`
-    if click_data and len(manual_centroids) < n_clusters:
+    if click_data and len(manual_centroids) < n_clusters and current_step < 1:
         # Extract the clicked point
         x_click = click_data['points'][0]['x']
         y_click = click_data['points'][0]['y']
@@ -136,14 +162,15 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
         # Check if the clicked point is valid and append it to manual_centroids
         manual_centroids.append([x_click, y_click])
         print(f"Manual centroids so far: {manual_centroids}")
-    
+        print(len(manual_centroids))
+        print(n_clusters)
         # Once enough centroids are selected, initialize KMeans
         if len(manual_centroids) == n_clusters and kmeans is None:
             print(f"Initializing KMeans with {n_clusters} manual centroids: {manual_centroids}")
             kmeans = KMeansCustom(n_clusters=n_clusters, init_method='manual', manual_centroids=manual_centroids)
             kmeans.centroids = np.array(manual_centroids)
         
-
+    invisible_grid = create_invisible_grid(X, num_points=100)
 
     # Step through KMeans after manual initialization or other methods
     if triggered_input == 'step_kmeans' and not converged:
@@ -185,8 +212,10 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
         converged = True  # Mark as converged
         convergence_message = "KMeans has converged!"
 
+
     # Assign clusters after each iteration (or full convergence)
-    if kmeans and (current_step != 0 or converged == True):
+    if kmeans and (current_step != 0 or converged == True): 
+        closest_centroids = kmeans._assign_clusters(X)
         closest_centroids = kmeans._assign_clusters(X)
         # Create color mapping for each cluster
         colors = ['green', 'blue', 'orange', 'purple', 'yellow', 'cyan', 'magenta', 'pink', 'brown']
@@ -204,12 +233,20 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
                 'mode': 'markers',
                 'marker': {'color': point_colors},
                 'name': 'Data Points'
+            },{
+                'x': invisible_grid[:, 0],
+                'y': invisible_grid[:, 1],
+                'mode': 'markers',
+                'marker': {'color': 'rgba(0,0,0,0)'},  # Make the grid points invisible
+                'name': '',
+                'opacity': 0  # Ensure they are invisible
             }
         ],
         'layout': {
             'title': 'KMeans Clustering Data',
             'xaxis': {'title': 'X-axis'},
             'yaxis': {'title': 'Y-axis'},
+            'hovermode': 'closest',
             'autosize': True
         }
     }
@@ -227,7 +264,6 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
             }
         ]
         print("Graph has been reset after the first step.")
-
 
     # If manual centroids are selected, display them as red crosses
     if manual_centroids and init_method == 'manual' and current_step<1:
@@ -250,9 +286,6 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
             'name': 'Centroids'
         })
     
-
-
-
     return figure, convergence_message, manual_centroids
 
 if __name__ == '__main__':

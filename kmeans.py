@@ -50,6 +50,7 @@ class KMeansCustom:
             self.initialize_centroids(X)  # Ensure centroids are initialized before proceeding
         for _ in range(self.max_iter):
             closest_centroids = self._assign_clusters(X)
+            
             new_centroids = np.array([X[closest_centroids == k].mean(axis=0) for k in range(self.n_clusters)])
 
             if np.linalg.norm(self.centroids - new_centroids) < self.tol:
@@ -57,8 +58,39 @@ class KMeansCustom:
 
             self.centroids = new_centroids
 
-    def _assign_clusters(self, X):
+    """def _assign_clusters(self, X):
         if self.centroids is None:
             raise ValueError("Centroids are not initialized.")  # Ensure centroids are initialized
         distances = np.array([np.linalg.norm(X - c, axis=1) for c in self.centroids])
-        return np.argmin(distances, axis=0)
+        return np.argmin(distances, axis=0)"""
+    
+
+    
+    def _assign_clusters(self, X):
+        # Ensure centroids are initialized
+        if self.centroids is None:
+            raise ValueError("Centroids are not initialized.")
+        
+        # Calculate distances from each point to each centroid
+        distances = np.array([np.linalg.norm(X - c, axis=1) for c in self.centroids])
+        
+        # Assign each point to the nearest centroid
+        assigned_clusters = np.argmin(distances, axis=0)
+        
+        # Count how many points are assigned to each cluster
+        points_per_cluster = np.bincount(assigned_clusters, minlength=self.n_clusters)
+        
+        # Check for empty clusters
+        for k in range(self.n_clusters):
+            if points_per_cluster[k] == 0:
+                print(f"Warning: Cluster {k} has no points assigned.")
+                
+                # Find the closest data point to this empty centroid
+                distances_to_centroid = np.linalg.norm(X - self.centroids[k], axis=1)
+                closest_point_idx = np.argmin(distances_to_centroid)
+                
+                # Manually assign the closest point to this centroid
+                assigned_clusters[closest_point_idx] = k
+                print(f"Assigned closest point {X[closest_point_idx]} to empty cluster {k}.")
+        
+        return assigned_clusters
