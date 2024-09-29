@@ -33,13 +33,16 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        
     - name: Install application using make
       run: |
         make install  # Use Makefile to install the dependencies
-    - name: Start the application using make and allow the server to run for a few seconds
+
+    - name: Start the application using make and capture PID
       run: |
-        make run &  # Start the server in the background
-        sleep 10    # Wait for the server to start up for 10 seconds before running tests
+        make run & echo $! > app.pid  # Start the server and store the process ID in a file
+        sleep 10                      # Wait for the server to start up for 10 seconds before running tests
+
     - name: Stop the application (cleanup)
       run: |
-        pkill -f "python"  # Stop the running server by killing the Python process
+        kill $(cat app.pid)  # Kill the process using the PID stored in the file
