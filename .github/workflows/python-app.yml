@@ -41,8 +41,12 @@ jobs:
     - name: Start the application using make and capture PID
       run: |
         make run & echo $! > app.pid  # Start the server and store the process ID in a file
-        sleep 10                      # Wait for the server to start up for 10 seconds before running tests
+        sleep 60                      # Wait for the server to start up for 10 seconds before running tests
 
-    - name: Stop the application (cleanup)
+    - name: Stop the application
       run: |
         kill $(cat app.pid)  # Kill the process using the PID stored in the file
+
+    - name: Cleanup
+      run: |
+        make clean
