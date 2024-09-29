@@ -131,7 +131,7 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
     if triggered_input == 'step_kmeans' and not converged:
         if kmeans is None or kmeans.centroids is None:
             if init_method == 'manual' and len(manual_centroids) < n_clusters:
-                convergence_message = f"Please select {n_clusters} centroids on the plot."
+                convergence_message = f"Please select {n_clusters} centroids on the plot. Press Reset Algorithm to try again."
                 return dash.no_update, convergence_message, manual_centroids
             kmeans = KMeansCustom(n_clusters=n_clusters, init_method=init_method)
             if init_method == 'manual':
@@ -157,7 +157,7 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
     elif triggered_input == 'run_convergence':
         if kmeans is None:
             if init_method == 'manual' and len(manual_centroids) < n_clusters:
-                convergence_message = f"Please select {n_clusters} centroids on the plot."
+                convergence_message = f"Please select {n_clusters} centroids on the plot. Press Reset Algorithm to try again."
                 return dash.no_update, convergence_message, manual_centroids
             kmeans = KMeansCustom(n_clusters=n_clusters, init_method=init_method)
             if init_method == 'manual':
