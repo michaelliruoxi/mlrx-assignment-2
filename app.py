@@ -12,7 +12,17 @@ server = Flask(__name__)
 app = Dash(__name__, server=server, external_stylesheets=["https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"])
 
 # Global variables
-X, y = make_blobs(n_samples=300, centers=1, cluster_std=5.0, center_box=(-10.0, 10.0), random_state=None)  # Fully spread-out dataset
+# Randomize parameters
+n_samples = np.random.randint(200, 500)  # Random number of samples
+n_centers = np.random.randint(1, 10)  # Random number of centers (clusters)
+cluster_std = np.random.uniform(1.0, 2.0)  # Random standard deviation for cluster spread
+center_box = (np.random.uniform(-20.0, 0.0), np.random.uniform(0.0, 20.0))  # Random center range
+
+
+# Generate random dataset
+X, y = make_blobs(n_samples=n_samples, centers=n_centers, cluster_std=cluster_std, center_box=center_box)
+
+
 kmeans = None  # No centroids initially
 current_step = 0
 converged = False
@@ -84,7 +94,15 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
 
     # Generate new dataset
     if triggered_input == 'new_dataset':
-        X, _ = make_blobs(n_samples=300, centers=1, cluster_std=5.0, center_box=(-10.0, 10.0), random_state=None)
+        # Randomize parameters
+        n_samples = np.random.randint(200, 500)  # Random number of samples
+        n_centers = np.random.randint(1, 10)  # Random number of centers (clusters)
+        cluster_std = np.random.uniform(1.0, 2.0)  # Random standard deviation for cluster spread
+        center_box = (np.random.uniform(-20.0, 0.0), np.random.uniform(0.0, 20.0))  # Random center range
+
+
+        # Generate random dataset
+        X, y = make_blobs(n_samples=n_samples, centers=n_centers, cluster_std=cluster_std, center_box=center_box)
         kmeans = None  # Clear centroids initially
         manual_centroids = []  # Clear manual centroids
         current_step = 0  # Reset step counter
