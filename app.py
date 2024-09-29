@@ -138,17 +138,20 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
                 kmeans.centroids = np.array(manual_centroids)
             kmeans.initialize_centroids(X)  # Initialize centroids (manual or other method)
 
-        # Perform one iteration of KMeans
-        closest_centroids = kmeans._assign_clusters(X)
-        new_centroids = np.array([X[closest_centroids == k].mean(axis=0) for k in range(n_clusters)])
+        if current_step > 0:
+            # Perform one iteration of KMeans
+            closest_centroids = kmeans._assign_clusters(X)
+            new_centroids = np.array([X[closest_centroids == k].mean(axis=0) for k in range(n_clusters)])
 
-        # Check if centroids have changed
-        if np.all(kmeans.centroids == new_centroids):
-            converged = True  # Mark as converged if centroids do not change
-            convergence_message = "KMeans has converged!"
-        else:
-            kmeans.centroids = new_centroids  # Update centroids for the next step
-            current_step += 1  # Increment step count
+            # Check if centroids have changed
+            if np.all(kmeans.centroids == new_centroids):
+                converged = True  # Mark as converged if centroids do not change
+                convergence_message = "KMeans has converged!"
+            else:
+                kmeans.centroids = new_centroids  # Update centroids for the next step
+                current_step += 1  # Increment step count
+        else: 
+            current_step += 1
 
     # Run KMeans until convergence when the button is pressed
     elif triggered_input == 'run_convergence':
@@ -193,10 +196,23 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
         }
     }
 
-    
+    if (current_step == 1 or converged == True) and init_method == "manual":
+        # Clear the figure data
+        manual_centroids = []
+        figure['data'] = [
+            {
+                'x': X[:, 0],
+                'y': X[:, 1],
+                'mode': 'markers',
+                'marker': {'color': point_colors},  # Reset the color of all data points
+                'name': 'Data Points'
+            }
+        ]
+        print("Graph has been reset after the first step.")
 
-    """# If manual centroids are selected, display them as red crosses
-    if manual_centroids and init_method == 'manual':
+
+    # If manual centroids are selected, display them as red crosses
+    if manual_centroids and init_method == 'manual' and current_step<1:
         manual_centroids = np.array(manual_centroids)
         figure['data'].append({
             'x': manual_centroids[:, 0],
@@ -205,14 +221,9 @@ def update_plot(n_clusters, init_method, step_clicks, convergence_clicks, new_da
             'marker': {'symbol': 'x', 'size': 12, 'color': 'red'},
             'name': 'Centroids'
         })
-        print(figure['data'])
-
-    if current_step == 1 or converged != True:
-        manual_centroids == []
-        figure['data'] = [trace for trace in figure['data'] if trace.get('name') != 'Manual Centroids']"""
 
     # If centroids are available, add them to the plot
-    if kmeans or (manual_centroids and init_method == 'manual'):
+    if kmeans:
         figure['data'].append({
             'x': kmeans.centroids[:, 0],
             'y': kmeans.centroids[:, 1],
